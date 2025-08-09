@@ -20,8 +20,8 @@ usage() {
   echo "  -w, --whole-word     Match the whole word"
   echo "  -R, --recursive      Search directories recursively"
   echo "  -F, --fixed-strings  String literal matching (no regex)"
-  echo "  -A <num>             Number of lines after match (default: 3)"
-  echo "  -B <num>             Number of lines before match (default: 3)"
+  echo "  -A <num>             Number of lines after match (default: 0)"
+  echo "  -B <num>             Number of lines before match (default: 0)"
   exit 1
 }
 
