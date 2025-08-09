@@ -1,0 +1,9 @@
+/.gitignore
+/.github
+/.vscode
+/.idea
+/tests
+/coverage
+*.log
+
+
