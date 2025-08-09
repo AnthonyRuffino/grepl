@@ -8,6 +8,12 @@
       "import": "./src/index.js"
     }
   },
+  "files": [
+    "src",
+    "grepl.sh",
+    "LICENSE",
+    "README.md"
+  ],
   "main": "./src/index.js",
   "engines": {
     "node": ">=18"

@@ -11,8 +11,22 @@ import { pipeline as pipelineCallback } from "node:stream";
 const execFileAsync = promisify(execFile);
 const pipeline = promisify(pipelineCallback);
 
-// If grepl isn't on PATH, let callers override via env or option
-const DEFAULT_grepl_CMD = process.env.grepl_CMD || "grepl";
+// Prefer bundled grepl.sh if present in the package tarball, else fall back to env or PATH
+function resolveDefaultGreplCmd() {
+  const envOverride = process.env.grepl_CMD;
+  if (envOverride && envOverride.trim()) return envOverride;
+  const candidateInPkg = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "grepl.sh");
+  try {
+    // On some systems URL pathname is percent-encoded; decode it
+    const decoded = decodeURIComponent(candidateInPkg);
+    if (fs.existsSync(decoded)) {
+      return decoded;
+    }
+  } catch {}
+  return "grepl";
+}
+
+const DEFAULT_grepl_CMD = resolveDefaultGreplCmd();
 
 /**
  * Build CLI args for grepl from options.
