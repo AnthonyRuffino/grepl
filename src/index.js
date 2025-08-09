@@ -3,13 +3,9 @@ import { promisify } from "node:util";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import https from "node:https";
-import http from "node:http";
 import readline from "node:readline";
-import { pipeline as pipelineCallback } from "node:stream";
 
 const execFileAsync = promisify(execFile);
-const pipeline = promisify(pipelineCallback);
 
 // Prefer bundled grepl.sh if present in the package tarball, else fall back to env or PATH
 function resolveDefaultGreplCmd() {
@@ -133,18 +129,8 @@ export async function greplHelp(opts = {}) {
 export { buildArgs };
 
 // -----------------------------
-// Installer for grepl CLI
+// Installer for grepl CLI (bundled copy only)
 // -----------------------------
-
-const DEFAULT_INSTALL_URL = "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/v0.0.1/grepl.sh";
-
-function buildInstallUrl(opts = {}) {
-  if (opts.url) return opts.url;
-  if (opts.version) {
-    return `https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/${opts.version}/grepl.sh`;
-  }
-  return DEFAULT_INSTALL_URL;
-}
 
 async function fileExists(filePath) {
   try {
@@ -166,46 +152,14 @@ function promptYesNo(question) {
   });
 }
 
-async function downloadToFile(url, destinationPath, redirectLimit = 3) {
-  const doRequest = (currentUrl, remainingRedirects) => new Promise((resolve, reject) => {
-    const client = currentUrl.startsWith("https:") ? https : http;
-    const request = client.get(currentUrl, (res) => {
-      const statusCode = res.statusCode || 0;
-      if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
-        if (remainingRedirects <= 0) {
-          reject(new Error(`Too many redirects while fetching ${currentUrl}`));
-          return;
-        }
-        const location = res.headers.location.startsWith("http")
-          ? res.headers.location
-          : new URL(res.headers.location, currentUrl).toString();
-        res.resume();
-        resolve(doRequest(location, remainingRedirects - 1));
-        return;
-      }
-      if (statusCode < 200 || statusCode >= 300) {
-        reject(new Error(`Download failed (${statusCode}) from ${currentUrl}`));
-        return;
-      }
-      const fileStream = fs.createWriteStream(destinationPath);
-      pipeline(res, fileStream).then(resolve).catch(reject);
-    });
-    request.on("error", reject);
-  });
-
-  await doRequest(url, redirectLimit);
-}
-
 /**
- * Download and install the grepl CLI script locally.
- * - Downloads from raw.githubusercontent unless a custom URL is provided
+ * Install the bundled grepl CLI script locally.
+ * - Copies this package's bundled grepl.sh
  * - Writes to destDir/fileName (default $HOME/.local/bin/grepl)
  * - Prompts before overwrite unless force=true
  * - chmod +x on the installed file
  *
  * @param {Object} [opts]
- * @param {string} [opts.url] Override download URL
- * @param {string} [opts.version] Tag to use with the default URL pattern (e.g. "v0.0.1")
  * @param {string} [opts.destDir] Destination directory (default $HOME/.local/bin)
  * @param {string} [opts.fileName="grepl"] Installed filename
  * @param {boolean} [opts.force=false] Overwrite without prompting
@@ -213,7 +167,6 @@ async function downloadToFile(url, destinationPath, redirectLimit = 3) {
  * @returns {Promise<{ installed: boolean, path: string, skipped?: boolean, reason?: string }>} Install result
  */
 export async function install(opts = {}) {
-  const url = buildInstallUrl(opts);
   const defaultUserBin = path.join(os.homedir(), ".local", "bin");
   const destDir = opts.destDir || defaultUserBin;
   const fileName = opts.fileName || "grepl";
@@ -221,6 +174,13 @@ export async function install(opts = {}) {
   const nonInteractive = Boolean(opts.nonInteractive);
 
   const destinationPath = path.resolve(destDir, fileName);
+  const bundledCandidate = decodeURIComponent(path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "grepl.sh"));
+
+  if (!(await fileExists(bundledCandidate))) {
+    const err = new Error("Bundled grepl.sh not found in this package. Cannot install.");
+    err.code = "ENOENT";
+    throw err;
+  }
 
   try {
     await fs.promises.mkdir(destDir, { recursive: true });
@@ -240,25 +200,8 @@ export async function install(opts = {}) {
     }
   }
 
-  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "grepl-install-"));
-  const tmpPath = path.join(tmpDir, "grepl.sh");
-
   try {
-    await downloadToFile(url, tmpPath);
-  } catch (err) {
-    const wrapped = new Error(`Failed to download grepl from ${url}: ${err?.message || err}`);
-    wrapped.cause = err;
-    throw wrapped;
-  }
-
-  try {
-    await fs.promises.chmod(tmpPath, 0o755);
-  } catch {
-    // non-fatal
-  }
-
-  try {
-    await fs.promises.copyFile(tmpPath, destinationPath);
+    await fs.promises.copyFile(bundledCandidate, destinationPath);
     await fs.promises.chmod(destinationPath, 0o755);
   } catch (err) {
     if (err && (err.code === "EACCES" || err.code === "EPERM")) {

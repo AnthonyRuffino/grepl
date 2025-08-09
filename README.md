@@ -57,28 +57,10 @@ npm i /home/anthony-ruffino/git/github.com/AnthonyRuffino/grepl/grepl-0.1.0.tgz
 
 ### Install options
 
-- Install the grepl CLI from GitHub (default URL pattern). Writes to `~/.local/bin` by default and makes it executable.
-
-```js
-import { install } from "grepl";
-
-// Default (uses the package’s preferred tag/URL)
-await install();
-
-// Specific tag
-await install({ version: "v0.0.1" });
-
-// Explicit URL
-await install({ url: "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/v0.0.1/grepl.sh" });
-
-// System-wide (requires sudo)
-// await install({ destDir: "/usr/local/bin", force: true });
-```
-
-- Install using the bundled script from `node_modules` (no network). This copies the included `grepl.sh` to a destination and marks it executable.
+- Install using the bundled script from `node_modules` (no network). The programmatic `install()` copies the included `grepl.sh` to a destination and marks it executable. By default, it writes to `~/.local/bin/grepl` and prompts before overwrite.
 
 ```sh
-node -e "(async()=>{ const fs=await import('node:fs'); const p=await import('node:path'); const targetDir=p.resolve(process.env.HOME,'/.local/bin'); await fs.promises.mkdir(targetDir,{recursive:true}); const src=p.resolve(require.resolve('grepl'),'..','..','grepl.sh'); const dst=p.resolve(targetDir,'grepl'); await fs.promises.copyFile(src,dst); await fs.promises.chmod(dst,0o755); console.log('Installed to',dst); })()"
+node -e "(async()=>{ const m=await import('grepl'); await m.install(); })()"
 ```
 
 ## Options → grepl flags
