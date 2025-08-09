@@ -1,8 +1,15 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import https from "node:https";
+import http from "node:http";
+import readline from "node:readline";
+import { pipeline as pipelineCallback } from "node:stream";
 
 const execFileAsync = promisify(execFile);
+const pipeline = promisify(pipelineCallback);
 
 // If grepl isn't on PATH, let callers override via env or option
 const DEFAULT_grepl_CMD = process.env.grepl_CMD || "grepl";
@@ -110,5 +117,152 @@ export async function greplHelp(opts = {}) {
 }
 
 export { buildArgs };
+
+// -----------------------------
+// Installer for grepl CLI
+// -----------------------------
+
+const DEFAULT_INSTALL_URL = "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/v0.0.1/grepl.sh";
+
+function buildInstallUrl(opts = {}) {
+  if (opts.url) return opts.url;
+  if (opts.version) {
+    return `https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/${opts.version}/grepl.sh`;
+  }
+  return DEFAULT_INSTALL_URL;
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.promises.access(filePath, fs.constants.FOK ?? fs.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function promptYesNo(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(`${question} `, (answer) => {
+      rl.close();
+      const normalized = String(answer || "").trim().toLowerCase();
+      resolve(normalized === "y" || normalized === "yes");
+    });
+  });
+}
+
+async function downloadToFile(url, destinationPath, redirectLimit = 3) {
+  const doRequest = (currentUrl, remainingRedirects) => new Promise((resolve, reject) => {
+    const client = currentUrl.startsWith("https:") ? https : http;
+    const request = client.get(currentUrl, (res) => {
+      const statusCode = res.statusCode || 0;
+      if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+        if (remainingRedirects <= 0) {
+          reject(new Error(`Too many redirects while fetching ${currentUrl}`));
+          return;
+        }
+        const location = res.headers.location.startsWith("http")
+          ? res.headers.location
+          : new URL(res.headers.location, currentUrl).toString();
+        res.resume();
+        resolve(doRequest(location, remainingRedirects - 1));
+        return;
+      }
+      if (statusCode < 200 || statusCode >= 300) {
+        reject(new Error(`Download failed (${statusCode}) from ${currentUrl}`));
+        return;
+      }
+      const fileStream = fs.createWriteStream(destinationPath);
+      pipeline(res, fileStream).then(resolve).catch(reject);
+    });
+    request.on("error", reject);
+  });
+
+  await doRequest(url, redirectLimit);
+}
+
+/**
+ * Download and install the grepl CLI script locally.
+ * - Downloads from raw.githubusercontent unless a custom URL is provided
+ * - Writes to destDir/fileName (default $HOME/.local/bin/grepl)
+ * - Prompts before overwrite unless force=true
+ * - chmod +x on the installed file
+ *
+ * @param {Object} [opts]
+ * @param {string} [opts.url] Override download URL
+ * @param {string} [opts.version] Tag to use with the default URL pattern (e.g. "v0.0.1")
+ * @param {string} [opts.destDir] Destination directory (default $HOME/.local/bin)
+ * @param {string} [opts.fileName="grepl"] Installed filename
+ * @param {boolean} [opts.force=false] Overwrite without prompting
+ * @param {boolean} [opts.nonInteractive=false] If true and overwrite needed without force, throw instead of prompting
+ * @returns {Promise<{ installed: boolean, path: string, skipped?: boolean, reason?: string }>} Install result
+ */
+export async function install(opts = {}) {
+  const url = buildInstallUrl(opts);
+  const defaultUserBin = path.join(os.homedir(), ".local", "bin");
+  const destDir = opts.destDir || defaultUserBin;
+  const fileName = opts.fileName || "grepl";
+  const force = Boolean(opts.force);
+  const nonInteractive = Boolean(opts.nonInteractive);
+
+  const destinationPath = path.resolve(destDir, fileName);
+
+  try {
+    await fs.promises.mkdir(destDir, { recursive: true });
+  } catch (err) {
+    // proceed; write will surface a clearer error
+  }
+
+  if (await fileExists(destinationPath) && !force) {
+    if (nonInteractive) {
+      const error = new Error(`Destination exists: ${destinationPath}. Set force=true to overwrite.`);
+      error.code = "EEXIST";
+      throw error;
+    }
+    const approved = await promptYesNo(`File exists at ${destinationPath}. Overwrite? [y/N]`);
+    if (!approved) {
+      return { installed: false, skipped: true, reason: "user_declined", path: destinationPath };
+    }
+  }
+
+  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "grepl-install-"));
+  const tmpPath = path.join(tmpDir, "grepl.sh");
+
+  try {
+    await downloadToFile(url, tmpPath);
+  } catch (err) {
+    const wrapped = new Error(`Failed to download grepl from ${url}: ${err?.message || err}`);
+    wrapped.cause = err;
+    throw wrapped;
+  }
+
+  try {
+    await fs.promises.chmod(tmpPath, 0o755);
+  } catch {
+    // non-fatal
+  }
+
+  try {
+    await fs.promises.copyFile(tmpPath, destinationPath);
+    await fs.promises.chmod(destinationPath, 0o755);
+  } catch (err) {
+    if (err && (err.code === "EACCES" || err.code === "EPERM")) {
+      const guidance = [
+        `Permission denied writing to ${destDir}.`,
+        `Try one of the following:`,
+        `- Use a user-writable directory (default): ${defaultUserBin} and ensure it's on PATH`,
+        `- Or re-run with elevated permissions for system dirs (e.g. /usr/local/bin)`
+      ].join("\n");
+      const wrapped = new Error(guidance);
+      wrapped.code = err.code;
+      wrapped.cause = err;
+      throw wrapped;
+    }
+    throw err;
+  }
+
+  return { installed: true, path: destinationPath };
+}
 
 
