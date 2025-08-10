@@ -26,7 +26,7 @@ if [ "$INSTALL_METHOD" = "wget" ]; then
     fi
     
     # Download based on version parameter
-    if [ "$VERSION" != "main" ]; then
+    if [ -n "$VERSION" ] && [ "$VERSION" != "main" ]; then
         echo "Downloading version: $VERSION"
         wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
     else
@@ -47,7 +47,7 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
     git clone git@github.com:AnthonyRuffino/grepl.git
     cd grepl/
     
-    if [ "$VERSION" != "main" ]; then
+    if [ -n "$VERSION" ] && [ "$VERSION" != "main" ]; then
         echo "Checking out version: $VERSION"
         git checkout "$VERSION"
     fi
