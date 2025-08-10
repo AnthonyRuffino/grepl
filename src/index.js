@@ -219,6 +219,7 @@ export async function install(opts = {}) {
     throw err;
   }
 
+  console.log(`✅ grepl installed successfully to: ${destinationPath}`);
   return { installed: true, path: destinationPath };
 }
 
