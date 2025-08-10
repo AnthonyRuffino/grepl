@@ -26,12 +26,11 @@ if [ "$INSTALL_METHOD" = "wget" ]; then
     fi
     
     # Download based on version parameter
-    if [ "$VERSION" = "main" ]; then
-        echo "Downloading from main branch"
-        wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
-    else
+    if [ "$VERSION" != "main" ]; then
         echo "Downloading version: $VERSION"
         wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
+    else
+        wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
     fi
     
     chmod +x grepl
@@ -51,8 +50,6 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
     if [ "$VERSION" != "main" ]; then
         echo "Checking out version: $VERSION"
         git checkout "$VERSION"
-    else
-        echo "Using main branch"
     fi
     
     # Build and install
