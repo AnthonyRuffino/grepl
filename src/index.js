@@ -11,6 +11,7 @@ const execFileAsync = promisify(execFile);
 function resolveDefaultGreplCmd() {
   const envOverride = process.env.grepl_CMD;
   if (envOverride && envOverride.trim()) return envOverride;
+  
   const candidateInPkg = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "grepl.sh");
   try {
     // On some systems URL pathname is percent-encoded; decode it
@@ -84,6 +85,11 @@ export async function rungrepl(opts) {
     });
     return { stdout: stdout ?? "", stderr: stderr ?? "" };
   } catch (err) {
+    // Handle "no matches found" case (exit code 1) as normal, not an error
+    if (err?.code === 1 && (!err.stdout || err.stdout === '') && (!err.stderr || err.stderr === '')) {
+      return { stdout: "", stderr: "", code: 1 };
+    }
+    
     if (opts?.suppressErrors) {
       const stdout = err?.stdout ?? "";
       const stderr = (err?.stderr ?? "") || String(err?.message ?? err);

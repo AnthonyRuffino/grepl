@@ -5,7 +5,7 @@
 # version: optional tag version for npm mode (e.g., "0.0.1", "v1.0.0") - defaults to "main"
 
 INSTALL_METHOD=${1:-"wget"}
-VERSION=${2:-"main"}
+VERSION=${2:-}
 
 echo "Installing grepl with method: $INSTALL_METHOD, version: $VERSION"
 
@@ -17,8 +17,7 @@ if [ "$INSTALL_METHOD" = "wget" ]; then
     
     # Check if target file exists and prompt user
     if [ -f ~/.local/bin/grepl ]; then
-        read -p "File ~/.local/bin/grepl already exists. Overwrite? [y/N]: " -n 1 -r
-        echo
+        read -p "File ~/.local/bin/grepl already exists. Overwrite? [y/N]: "
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo "Installation cancelled."
             exit 0
@@ -26,7 +25,7 @@ if [ "$INSTALL_METHOD" = "wget" ]; then
     fi
     
     # Download based on version parameter
-    if [ -n "$VERSION" ] && [ "$VERSION" != "main" ]; then
+    if [ -n "$VERSION" ]; then
         echo "Downloading version: $VERSION"
         wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
     else
@@ -44,29 +43,32 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
     rm -rf /tmp/grepl-install && mkdir -p /tmp/grepl-install && cd /tmp/grepl-install
     
     # Clone and checkout version if specified
-    git clone git@github.com:AnthonyRuffino/grepl.git
+    git clone -q git@github.com:AnthonyRuffino/grepl.git
     cd grepl/
     
-    if [ -n "$VERSION" ] && [ "$VERSION" != "main" ]; then
+    if [ -n "$VERSION" ]; then
         echo "Checking out version: $VERSION"
-        git checkout "$VERSION"
+        git checkout -q "$VERSION"
     fi
     
-    # Build and install
-    npm pack
-    npm init -y
-    
-    # Extract version from package.json using grepl.sh
-    if [ -n "$VERSION" ] && [ "$VERSION" != "main" ]; then
+    if [ -n "$VERSION" ]; then
         # Use provided version parameter
         PACKAGE_VERSION="$VERSION"
     else
         # Extract version from package.json using grepl.sh
-        VERSION_LINE=$(./grepl.sh '"version": "' package.json)
+        VERSION_LINE=$(grep --color=never '"version": "' package.json)
         PACKAGE_VERSION=$(echo "$VERSION_LINE" | sed 's/.*"version": "\([^"]*\)".*/\1/')
+        echo "Checking out version from main package.json: ${PACKAGE_VERSION}"
+        git checkout -q "${PACKAGE_VERSION}"
     fi
-    
-    npm i "grepl-${PACKAGE_VERSION}.tgz"
+
+    # Build and install
+    npm pack --silent
+
+    echo "Installing grepl npm package: grepl-${PACKAGE_VERSION}.tgz"
+    npm i --silent "grepl-${PACKAGE_VERSION}.tgz"
+
+    echo "Installing grepl via npm install()"
     node -e "import('grepl').then(m => m.install())"
     
     # Cleanup

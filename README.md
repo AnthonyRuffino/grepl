@@ -35,56 +35,47 @@ console.log(help.stdout || help.stderr);
 ### Quick local test against the bundled README
 
 
-Relative Path Handling:
+#### Relative Path Handling:
 Uses relative path 'node_modules/grepl/README.md' directly.
+
+##### Command:
 ```sh
-node -e "import('grepl').then(async m => { const r = await m.rungrepl({ query: 'PATH', target: 'node_modules/grepl/README.md', fixedStrings: true }); console.log(r.stdout); })"
+$ node -e '
+  import("grepl")
+    .then(m => 
+      m.rungrepl({ query: "m.rungrepl", target: "README.md", fixedStrings: true })
+        .then(r => console.log(r.stdout))
+    )
+'
+```
+##### Output:
+```
+README.md:46:      m.rungrepl({ query: "rungrepl", target: "README.md", fixedStrings: true })
+README.md:53:...
 ```
 
-Absolute Path Handling:
+#### Absolute Path Handling:
 Uses path.resolve(process.cwd(), 'node_modules/grepl/README.md') to create an absolute path
+
+##### Command:
 ```sh
-node -e "(async()=>{ const p=await import('node:path'); const m=await import('grepl'); const file=p.resolve(process.cwd(),'node_modules/grepl/README.md'); const r=await m.rungrepl({ query:'PATH', target:file, fixedStrings:true }); console.log(r.stdout, file); })()"
+$ node -e '
+  import("grepl")
+    .then(g => 
+      import("node:path")
+        .then(p => p.resolve(process.cwd(), "README.md"))
+        .then(f => 
+          g.rungrepl({ query: "g.rungrepl", target: f, fixedStrings: true })
+        )
+        .then(r => console.log(r.stdout))
+    )
+'
 ```
 
-Output:
-Relative: Only prints the search results (r.stdout)
-Absolute: Prints both results AND the full file path (r.stdout, file)
-
-
-Example output:
-
-Relative Path:
-
-Command:
+##### Output:
 ```
-node -e "import('grepl').then(async m => { const r = await m.rungrepl({ query: 'PATH', target: 'node_modules/grepl/README.md', matchCase: true, fixedStrings: true }); console.log(r.stdout); })"
-```
-
-Response:
-```
-/tmp/grepl-test/node_modules/grepl/README.md:13:> Requires Node 18+. By default the wrapper prefers its bundled `grepl.sh` (shipped in this package). If not present, it falls back to `grepl` on PATH. You can override with `grepl_CMD=/path/to/grepl` or the `greplCmd` option.
---
-/tmp/grepl-test/node_modules/grepl/README.md:38:node -e "(async()=>{ const p=await import('node:path'); const m=await import('grepl'); const file=p.resolve(process.cwd(),'node_modules/grepl/README.md'); const r=await m.rungrepl({ query:'PATH', target:file, fixedStrings:true }); console.log(r.stdout, file); })()"
---
-/tmp/grepl-test/node_modules/grepl/README.md:44:/tmp/grepl-test/node_modules/grepl/README.md:13:> Requires Node 18+. By default the wrapper prefers its bundled `grepl.sh` (shipped in this package). If not present, it falls back to `grepl` on PATH. You can override with `grepl_CMD=/path/to/grepl` or the `greplCmd` option.
-```
-
-Absolute Path:
-
-Command:
-```
-node -e "(async()=>{ const p=await import('node:path'); const m=await import('grepl'); const file=p.resolve(process.cwd(),'node_modules/grepl/README.md'); const r=await m.rungrepl({ query:'PATH', target:file, matchCase:true, fixedStrings:true }); console.log(r.stdout, file); })()"
-```
-
-Response:
-```
-/tmp/grepl-test/node_modules/grepl/README.md:13:> Requires Node 18+. By default the wrapper prefers its bundled `grepl.sh` (shipped in this package). If not present, it falls back to `grepl` on PATH. You can override with `grepl_CMD=/path/to/grepl` or the `greplCmd` option.
---
-/tmp/grepl-test/node_modules/grepl/README.md:38:node -e "(async()=>{ const p=await import('node:path'); const m=await import('grepl'); const file=p.resolve(process.cwd(),'node_modules/grepl/README.md'); const r=await m.rungrepl({ query:'PATH', target:file, fixedStrings:true }); console.log(r.stdout, file); })()"
---
-/tmp/grepl-test/node_modules/grepl/README.md:44:/tmp/grepl-test/node_modules/grepl/README.md:13:> Requires Node 18+. By default the wrapper prefers its bundled `grepl.sh` (shipped in this package). If not present, it falls back to `grepl` on PATH. You can override with `grepl_CMD=/path/to/grepl` or the `greplCmd` option.
- /tmp/grepl-test/node_modules/grepl/README.md
+README.md:68:          g.rungrepl({ query: "PATH", target: f, fixedStrings: true })
+README.md:77:...
 ```
 
 ### Environment setup from source

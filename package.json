@@ -18,13 +18,20 @@
   "engines": {
     "node": ">=18"
   },
-  "keywords": ["cli", "grep", "search", "mcp", "wrapper"],
+  "keywords": [
+    "cli",
+    "grep",
+    "search",
+    "mcp",
+    "wrapper"
+  ],
   "license": "MIT",
   "author": "",
   "repository": {
     "type": "git",
     "url": ""
+  },
+  "scripts": {
+    "test": "node test.js"
   }
 }
-
-
