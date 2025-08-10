@@ -26,8 +26,10 @@ async function runTests() {
       fixedStrings: true 
     });
     
-    assert(result1.stdout.includes('README.md') && result1.stdout.includes('# grepl'), 
-      `Expected output to include both "README.md" and "# grepl", got: ${result1.stdout}`);
+    // Strip ANSI color codes and check for exact line number format
+    const cleanOutput1 = result1.stdout.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '');
+    assert(cleanOutput1.includes('README.md:1:# grepl'), 
+      `Expected output to include "README.md:1:# grepl", got: ${cleanOutput1}`);
     console.log('✅ Test 1 passed\n');
     
     // Test 2: Simple target string
@@ -38,8 +40,10 @@ async function runTests() {
       fixedStrings: true 
     });
     
-    assert(result2.stdout.includes('README.md') && result2.stdout.includes('# grepl'), 
-      `Expected output to include both "README.md" and "# grepl", got: ${result2.stdout}`);
+    // Strip ANSI color codes and check for exact line number format
+    const cleanOutput2 = result2.stdout.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '');
+    assert(cleanOutput2.includes('README.md:1:# grepl'), 
+      `Expected output to include "README.md:1:# grepl", got: ${cleanOutput2}`);
     console.log('✅ Test 2 passed\n');
     
     // Test 3: No matches should not throw error
