@@ -55,7 +55,18 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
     # Build and install
     npm pack
     npm init -y
-    npm i "grepl-$(npm pack --dry-run | grep -o 'grepl-[0-9.]*\.tgz' | head -1 | sed 's/\.tgz$//').tgz"
+    
+    # Extract version from package.json using grepl.sh
+    if [ -n "$VERSION" ] && [ "$VERSION" != "main" ]; then
+        # Use provided version parameter
+        PACKAGE_VERSION="$VERSION"
+    else
+        # Extract version from package.json using grepl.sh
+        VERSION_LINE=$(./grepl.sh '"version": "' package.json)
+        PACKAGE_VERSION=$(echo "$VERSION_LINE" | sed 's/.*"version": "\([^"]*\)".*/\1/')
+    fi
+    
+    npm i "grepl-${PACKAGE_VERSION}.tgz"
     node -e "import('grepl').then(m => m.install())"
     
     # Cleanup
