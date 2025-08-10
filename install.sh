@@ -48,7 +48,10 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
     
     if [ -n "$VERSION" ]; then
         echo "Checking out version: $VERSION"
-        git checkout -q "$VERSION"
+        if ! git checkout -q "$VERSION"; then
+            echo "Error: Failed to checkout version $VERSION"
+            exit 1
+        fi
     fi
     
     if [ -n "$VERSION" ]; then
@@ -64,20 +67,30 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
 
     # Build and install
     npm pack --silent
-
+    cd ..
+    cp "grepl/grepl-${PACKAGE_VERSION}.tgz" .
     echo "Installing grepl npm package: grepl-${PACKAGE_VERSION}.tgz"
     npm i --silent "grepl-${PACKAGE_VERSION}.tgz"
 
-    echo "Installing grepl via npm install()"
-    node -e "import('grepl').then(m => m.install())"
     
+    echo "Installing grepl via npm install()"
+
+    node -e '
+    (async () => {
+        try {
+        const m = await import("grepl");
+        await m.install();
+        console.log("✅ NPM Installation was successful.");
+        } catch (error) {
+        console.error("NPM Installation failed:", error);
+        }
+    })()
+    '
     # Cleanup
-    rm -rf /tmp/grepl-install
-    echo "✅ npm installation completed"
+    #rm -rf /tmp/grepl-install
+    echo "clean up done"
     
 else
     echo "Error: Invalid install method '$INSTALL_METHOD'. Use 'wget' or 'npm'."
     exit 1
 fi
-
-echo "Installation completed successfully!"
