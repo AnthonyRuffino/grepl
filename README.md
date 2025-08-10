@@ -2,6 +2,19 @@
 
 Small Node.js wrapper around the `grepl` CLI for programmatic use (e.g. MCP servers).
 
+
+## Install CLI
+#### Install latest from main branch
+wget
+```bash
+wget -O - https://raw.githubusercontent.com/AnthonyRuffino/grepl/main/install.sh | bash
+```
+
+curl
+```bash
+curl -sSL https://raw.githubusercontent.com/AnthonyRuffino/grepl/main/install.sh | bash
+```
+
 ## Install
 
 ```bash
@@ -109,6 +122,31 @@ node -e "import('grepl').then(m => m.install())"
 When you need control:
 ```sh
 node -e "(async()=>{ const m=await import('grepl'); await m.install(); })()"
+```
+
+
+#### Quick Install Script
+
+Download and run the install script in one command:
+
+#### Install Script Parameters:
+- **First parameter**: `wget` (direct download) or `npm` (clone + build)
+- **Second parameter**: version tag (optional, e.g., "0.0.1", "0.1.0",  "1.0.0")
+- **Defaults**: `wget` method, latest from main branch if no version specified
+
+#### Install latest from main branch
+```bash
+wget -O - https://raw.githubusercontent.com/AnthonyRuffino/grepl/main/install.sh | bash
+```
+
+#### Install specific version
+```bash
+wget -O - https://raw.githubusercontent.com/AnthonyRuffino/grepl/main/install.sh | bash -s wget 0.0.1
+```
+
+#### Install via npm method with version
+```bash
+wget -O - https://raw.githubusercontent.com/AnthonyRuffino/grepl/main/install.sh | bash -s npm 0.0.1
 ```
 
 ### Options → grepl flags

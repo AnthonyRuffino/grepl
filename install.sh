@@ -4,39 +4,13 @@
 # install_method: "wget" (direct download) or "npm" (clone + npm pack)
 # version: optional tag version for npm mode (e.g., "0.0.1", "v1.0.0") - defaults to "main"
 
-INSTALL_METHOD=${1:-"wget"}
+INSTALL_METHOD=${1:-}
 VERSION=${2:-}
 
-echo "Installing grepl with method: $INSTALL_METHOD, version: $VERSION"
+echo "Installing grepl..."
 
-if [ "$INSTALL_METHOD" = "wget" ]; then
-    echo "Installing via wget from GitHub"
+if [ "$INSTALL_METHOD" = "npm" ]; then
     
-    # Create target directory
-    mkdir -p ~/.local/bin
-    
-    # Check if target file exists and prompt user
-    if [ -f ~/.local/bin/grepl ]; then
-        read -p "File ~/.local/bin/grepl already exists. Overwrite? [y/N]: "
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Installation cancelled."
-            exit 0
-        fi
-    fi
-    
-    # Download based on version parameter
-    if [ -n "$VERSION" ]; then
-        echo "Downloading version: $VERSION"
-        wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
-    else
-        wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
-    fi
-    
-    chmod +x grepl
-    mv grepl ~/.local/bin/grepl
-    echo "✅ grepl installed to ~/.local/bin/grepl"
-    
-elif [ "$INSTALL_METHOD" = "npm" ]; then
     echo "Installing via npm pack (clone + build)"
     
     # Create temp directory for build
@@ -88,9 +62,47 @@ elif [ "$INSTALL_METHOD" = "npm" ]; then
     '
     # Cleanup
     #rm -rf /tmp/grepl-install
-    echo "clean up done"
-    
+    echo "clean up done"  
 else
-    echo "Error: Invalid install method '$INSTALL_METHOD'. Use 'wget' or 'npm'."
-    exit 1
+    echo "Installing via wget/curl from GitHub"
+    
+    # Create target directory
+    mkdir -p ~/.local/bin
+    
+    # Check if target file exists and prompt user
+    if [ -f ~/.local/bin/grepl ]; then
+        read -p "File ~/.local/bin/grepl already exists. Overwrite? [y/N]: "
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Installation cancelled."
+            exit 0
+        fi
+    fi
+    
+    # Try wget first, fallback to curl if wget not available
+    if command -v wget >/dev/null 2>&1; then
+        echo "Using wget to download..."
+        # Download based on version parameter
+        if [ -n "$VERSION" ]; then
+            echo "Downloading version: $VERSION"
+            wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
+        else
+            wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
+        fi
+    elif command -v curl >/dev/null 2>&1; then
+        echo "Using curl to download..."
+        # Download based on version parameter
+        if [ -n "$VERSION" ]; then
+            echo "Downloading version: $VERSION"
+            curl -sSL -o grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
+        else
+            curl -sSL -o grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
+        fi
+    else
+        echo "Error: Neither wget nor curl is available. Please install one of them and try again."
+        exit 1
+    fi
+    
+    chmod +x grepl
+    mv grepl ~/.local/bin/grepl
+    echo "✅ grepl installed to ~/.local/bin/grepl"
 fi
