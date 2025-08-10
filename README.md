@@ -87,12 +87,16 @@ Response:
  /tmp/grepl-test/node_modules/grepl/README.md
 ```
 
-### Environment setup used above
+### Environment setup from source
 
 ```sh
 rm -rf /tmp/grepl-test && mkdir -p /tmp/grepl-test && cd /tmp/grepl-test
+git clone git@github.com:AnthonyRuffino/grepl.git
+cd grepl
+npm pack
+cd ..
 npm init -y
-npm i /home/anthony-ruffino/git/github.com/AnthonyRuffino/grepl/grepl-0.1.0.tgz
+npm i /grepl/grepl-0.0.4.tgz
 ```
 
 
@@ -127,9 +131,9 @@ Usage: ./node_modules/grepl/grepl.sh [options] <search_string> <file_or_director
 - greplCmd → custom path/command for grepl
 - suppressErrors → return stdout/stderr even if exit code ≠ 0
 
-Usage: grepl [options] <search_string> <file_or_directory>
+Usage once installed: grepl [options] <search_string> <file_or_directory>
 e.g.
 ```sh
-grepl -c PATH  /tmp/grepl-test/node_modules/grepl/README.md
+grepl -c PATH  node_modules/grepl/README.md
 ```
 
