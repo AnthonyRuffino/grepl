@@ -96,7 +96,7 @@ cd grepl
 npm pack
 cd ..
 npm init -y
-npm i grepl/grepl-0.0.5.tgz
+npm i grepl/grepl-0.0.1.tgz
 ```
 
 
