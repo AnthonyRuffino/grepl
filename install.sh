@@ -25,8 +25,14 @@ if [ "$INSTALL_METHOD" = "wget" ]; then
         fi
     fi
     
-    # Always use main branch for wget mode (no version needed)
-    wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
+    # Download based on version parameter
+    if [ "$VERSION" = "main" ]; then
+        echo "Downloading from main branch"
+        wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/heads/main/grepl.sh"
+    else
+        echo "Downloading version: $VERSION"
+        wget -O grepl "https://raw.githubusercontent.com/AnthonyRuffino/grepl/refs/tags/$VERSION/grepl.sh"
+    fi
     
     chmod +x grepl
     mv grepl ~/.local/bin/grepl
